@@ -1,0 +1,24 @@
+language: node_js
+
+node_js:
+  - "8"
+
+os:
+  - linux
+
+sudo: required
+
+services:
+  - docker
+
+before_script:
+  - npm i @npm-wharf/shipwright@latest -g
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+  - ./start-redis.sh
+
+script:
+  - nyc npm test && nyc report --reporter=text-lcov | coveralls
+  - shipwright build image --repo=npmwharf --name=command-hub --cache-from-latest --tags=lm,lt,v,ma,miv
+
+after_script:
+  - ./stop-redis.sh

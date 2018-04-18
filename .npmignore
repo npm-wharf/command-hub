@@ -1,0 +1,6 @@
+.git
+spec/
+certs/
+.nyc_output/
+coverage/
+node_modules/

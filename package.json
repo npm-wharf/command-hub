@@ -1,0 +1,66 @@
+{
+  "name": "@npm-wharf/commandhub",
+  "version": "1.0.0",
+  "description": "securely manage multiple kubernetes clusters via hikaru endpoints",
+  "main": "src/index.js",
+  "bin": {
+    "comhub": "./bin/comhub.js"
+  },
+  "keywords": [
+    "kubernetes",
+    "hikaru"
+  ],
+  "author": "Alex Robson",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "body-parser": "^1.18.2",
+    "bole": "^3.0.2",
+    "chalk": "^2.3.2",
+    "cliui": "^4.0.0",
+    "deftly": "^1.1.0",
+    "deftly-express": "^1.1.2",
+    "dot-env": "0.0.1",
+    "express": "^4.16.3",
+    "fauxdash": "^1.3.2",
+    "fount": "^1.1.4",
+    "ioredis": "^3.2.2",
+    "uuid": "^3.2.1",
+    "yargs": "^11.0.0"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "coveralls": "^3.0.0",
+    "mocha": "^5.0.5",
+    "mocha-lcov-reporter": "^1.3.0",
+    "nock": "^9.2.3",
+    "nyc": "^11.6.0",
+    "request": "^2.85.0",
+    "sinon": "^4.5.0",
+    "sinon-chai": "^3.0.0",
+    "standard": "^11.0.1",
+    "standard-version": "^4.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/npm-wharf/commandhub.git"
+  },
+  "scripts": {
+    "pretest": "standard",
+    "test": "node_modules/mocha/bin/mocha spec/**/*.spec.js",
+    "coverage": "nyc npm test",
+    "continuous": "./node_modules/mocha/bin/mocha spec/*.spec.js -w",
+    "release": "standard-version",
+    "standard": "standard --fix"
+  },
+  "standard": {
+    "env": [
+      "mocha"
+    ],
+    "globals": [
+      "axios",
+      "nock"
+    ]
+  }
+}
