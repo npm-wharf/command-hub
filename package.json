@@ -1,5 +1,5 @@
 {
-  "name": "@npm-wharf/commandhub",
+  "name": "@npm-wharf/command-hub",
   "version": "1.0.0",
   "description": "securely manage multiple kubernetes clusters via hikaru endpoints",
   "main": "src/index.js",
@@ -44,7 +44,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/npm-wharf/commandhub.git"
+    "url": "git://github.com/npm-wharf/command-hub.git"
   },
   "scripts": {
     "pretest": "standard",

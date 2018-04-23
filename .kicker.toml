@@ -1,0 +1,16 @@
+name = "hikaru"
+start = "start = node ./src/server"
+
+[environment]
+  API_TOKEN = "{{comhub_api_token}}"
+  HIKARU_TOKEN = "{{hikaru_api_token}}"
+  HUB_PRIVATE_KEY = "{{local_private_key}}"
+  HIKARU_PUBLIC_KEY = "{{hikaru_public_key}}"
+  CLIENT_PUBLIC_KEY = "{{client_public_key}}"
+  REDIS_URL = "{{redis_url}}"
+  CLUSTER_API_HOST = "{{cluster_api_host}}"
+  CLUSTER_API_LIST = "{{cluster_api_list}}"
+  CLUSTER_API_CLUSTER = "{{cluster_api_cluster}}"
+  CLUSTER_API_TOKEN = "{{cluster_api_token}}"
+  CLUSTER_API_USER = "{{cluster_api_user}}"
+  CLUSTER_API_PASS = "{{cluster_api_pass}}"

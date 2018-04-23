@@ -7,9 +7,9 @@ A service built to securely manage the continuous deployment to multiple Kuberne
 
 ## Goals
 
-command hub exists to solve the challenge of managing deployments to multiple Kubernetes clusters using the installed [hikaru](https://github.com/npm-wharf/hikaru) service API. command hub is designed to work with hikaru's asymmetric key encrypted token exchange to prevent an attacker being able to take control of a cluster's installed software.
+command-hub exists to solve the challenge of managing deployments to multiple Kubernetes clusters using the installed [hikaru](https://github.com/npm-wharf/hikaru) service API. command-hub is designed to work with hikaru's asymmetric key encrypted token exchange to prevent an attacker being able to take control of a cluster's installed software.
 
-command hub provides multiple ways to manage the list of endpoints it can manage. By default, it supports the ability to keep a list of clusters stored in a redis endpoint. The ability to change this with a custom storage back-end via a very simple plugin approach is explained later.
+command-hub provides multiple ways to manage the list of endpoints it can manage. By default, it supports the ability to keep a list of clusters stored in a redis endpoint. The ability to change this with a custom storage back-end via a very simple plugin approach is explained later.
 
 ### Library form
 Installing command-hub as a module will allow you to call the API endpoints as simple function calls after providing some configuration: the URL, the token and the location of the key files needed to encrypt and sign the token.
@@ -30,6 +30,7 @@ Service configuration:
  * `HUB_PRIVATE_KEY` - path to secret private key
  * `HIKARU_PUBLIC_KEY` - path to shared public key for hikaru installations
  * `CLIENT_PUBLIC_KEY` - path to shared public key for client's calling hub API
+ * `ETCD` - the URL to etcd, required by kickerd (even if unnused)
 
 If storing cluster endpoints in redis:
 
@@ -46,9 +47,26 @@ If using providing an API to fetch cluster URLs from:
 
 CLI and module specific configuration variables:
 
- * `HUB_URL` - the url where command hub is hosted (for module and CLI configuration)
+ * `HUB_URL` - the url where command-hub is hosted (for module and CLI configuration)
  * `CLIENT_PRIVATE_KEY` - path to secret client private key
  * `HUB_PUBLIC_KEY` - path to shared public key for hub
+
+### ETCD Keys (kicker.toml)
+
+Like [hikaru](https://github.com/npm-wharf/hikaru), command-hub uses [kickerd](https://github.com/npm-wharf/kickerd) to monitor etcd for environment variable values and changes to the keys. Here is the etcd key to environment variable mapping:
+
+ * `comhub_api_token` - `API_TOKEN`
+ * `hikaru_api_token` - `HIKARU_TOKEN`
+ * `local_private_key` - `HUB_PRIVATE_KEY`
+ * `hikaru_public_key` - `HIKARU_PUBLIC_KEY`
+ * `client_public_key` - `CLIENT_PUBLIC_KEY`
+ * `redis_url` - `REDIS_URL`
+ * `cluster_api_host` - `CLUSTER_API_HOST`
+ * `cluster_api_list` - `CLUSTER_API_LIST`
+ * `cluster_api_cluster` - `CLUSTER_API_CLUSTER`
+ * `cluster_api_token` - `CLUSTER_API_TOKEN`
+ * `cluster_api_user` - `CLUSTER_API_USER`
+ * `cluster_api_pass` - `CLUSTER_API_PASS`
 
 ## HTTP API
 
