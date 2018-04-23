@@ -15,6 +15,7 @@ before_script:
   - npm i @npm-wharf/shipwright@latest -g
   - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
   - ./start-redis.sh
+  - ./create-keys.sh
 
 script:
   - nyc npm test && nyc report --reporter=text-lcov | coveralls
