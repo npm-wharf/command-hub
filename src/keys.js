@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const SIG_METHOD = 'RSA-SHA256'
 const log = require('bole')('hikaru.decryption')
+const zlib = require('zlib')
 
 function decrypt (publicKey, localKey, token, signature) {
   try {
@@ -22,6 +23,25 @@ function encrypt (publicKey, localKey, secret) {
   return {
     token,
     signature
+  }
+}
+
+function read (log, value) {
+  if (/[.](pem|crt|key)$/.test(value)) {
+    return readFile(log, value)
+  } else {
+    return readString(log, value)
+  }
+}
+
+function readString (log, value) {
+  try {
+    const buffer = Buffer.from(value, 'base64')
+    const inflated = zlib.inflateRawSync(buffer, { memoryLevel: 9 })
+    return inflated.toString('utf8')
+  } catch (e) {
+    log.error(`could not read cert from environment variable: ${e.stack}`)
+    return null
   }
 }
 
@@ -53,7 +73,7 @@ module.exports = function () {
   return {
     decrypt: decrypt,
     encrypt: encrypt,
-    read: readFile,
+    read: read,
     sign: sign,
     verify: verify
   }

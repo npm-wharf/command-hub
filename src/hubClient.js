@@ -21,7 +21,11 @@ function findWorkloads (name, image) {
     .then(
       response => response.data,
       err => {
-        log.error(`failed to find workloads: ${err.response.status} - ${err.response.data}`)
+        if (err.response) {
+          log.error(`failed to find workloads: ${err.response.status} - ${err.response.data}`)
+        } else {
+          log.error(`no response from server '${axios.defaults.baseURL}' - cannot find workloads due to error: ${err.stack}`)
+        }
         return {}
       }
     )
@@ -36,8 +40,12 @@ function getCandidates (name, image, filter) {
     .then(
       response => response.data,
       err => {
-        log.error(`failed to get candidates: ${err.response.status} - ${err.response.data}`)
-        return {}
+        if (err.response) {
+          log.error(`failed to get candidates: ${err.response.status} - ${err.response.data}`)
+          return {}
+        } else {
+          log.error(`no response from server '${axios.defaults.baseURL}' - cannot get upgrade candidates due to error: ${err.stack}`)
+        }
       }
     )
 }
@@ -47,7 +55,11 @@ function getClusters () {
     .then(
       response => response.data.clusters,
       err => {
-        log.error(`failed to get cluster list: ${err.response.status} - ${err.response.data}`)
+        if (err.response) {
+          log.error(`failed to get cluster list: ${err.response.status} - ${err.response.data}`)
+        } else {
+          log.error(`no response from server '${axios.defaults.baseURL}' - cannot get cluster list due to error: ${err.stack}`)
+        }
         return []
       }
     )
@@ -65,8 +77,12 @@ function addCluster (name, url) {
   ).then(
     response => response.status === 201,
     err => {
-      log.error(`failed to add cluster: ${err.response.status} - ${err.response.data}`)
-      return false
+      if (err.response) {
+        log.error(`failed to add cluster: ${err.response.status} - ${err.response.data}`)
+        return false
+      } else {
+        log.error(`no response from server '${axios.defaults.baseURL}' - cannot add cluster due to error: ${err.stack}`)
+      }
     }
   )
 }
@@ -77,8 +93,12 @@ function removeCluster (name) {
   ).then(
     response => response.status === 204,
     err => {
-      log.error(`failed to remove cluster: ${err.response.status} - ${err.response.data}`)
-      return false
+      if (err.response) {
+        log.error(`failed to remove cluster: ${err.response.status} - ${err.response.data}`)
+        return false
+      } else {
+        log.error(`no response from server '${axios.defaults.baseURL}' - cannot remove cluster due to error: ${err.stack}`)
+      }
     }
   )
 }
@@ -92,8 +112,12 @@ function upgradeWorkloads (name, image, filter) {
     .then(
       response => response.data,
       err => {
-        log.error(`failed to upgrade workloads: ${err.response.status} - ${err.response.data}`)
-        return {}
+        if (err.response) {
+          log.error(`failed to upgrade workloads: ${err.response.status} - ${err.response.data}`)
+          return {}
+        } else {
+          log.error(`no response from server '${axios.defaults.baseURL}' - cannot update workloads due to error: ${err.stack}`)
+        }
       }
     )
 }

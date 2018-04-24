@@ -30,6 +30,7 @@ require('yargs') // eslint-disable-line no-unused-expressions
   .command(require('../src/commands/findWorkload')(client, log))
   .command(require('../src/commands/getCandidates')(client, log))
   .command(require('../src/commands/upgradeWorkload')(client, log))
+  .command(require('../src/commands/printKey')(client, log))
   .demandCommand(1, 'A command is required')
   .help()
   .version()

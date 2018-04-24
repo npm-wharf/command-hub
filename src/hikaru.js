@@ -10,7 +10,7 @@ function setDefaults (config) {
     privateKey,
     config.tokens.hikaru
   )
-  axios.defaults.headers.authorization = token.toString('base64')
+  axios.defaults.headers.authorization = `bearer: ${token.toString('base64')}`
   axios.defaults.headers.signature = signature.toString('base64')
 }
 
