@@ -2,71 +2,8 @@ const axios = require('axios')
 const keys = require('./keys')()
 const log = require('bole')('hub-client')
 
-function setDefaults (config) {
-  const publicKey = keys.read(log, config.keys.hubPublic)
-  const privateKey = keys.read(log, config.keys.clientPrivate)
-  const {token, signature} = keys.encrypt(
-    publicKey,
-    privateKey,
-    config.tokens.api
-  )
-  axios.defaults.baseURL = config.hubUrl
-  axios.defaults.headers.authorization = token.toString('base64')
-  axios.defaults.headers.signature = signature.toString('base64')
-}
-
-function findWorkloads (name, image) {
-  let url = `/api/cluster/${name}/workload/${image}`
-  return axios.get(url)
-    .then(
-      response => response.data,
-      err => {
-        if (err.response) {
-          log.error(`failed to find workloads: ${err.response.status} - ${err.response.data}`)
-        } else {
-          log.error(`no response from server '${axios.defaults.baseURL}' - cannot find workloads due to error: ${err.stack}`)
-        }
-        return {}
-      }
-    )
-}
-
-function getCandidates (name, image, filter) {
-  let url = `/api/cluster/${name}/image/${image}`
-  url = filter && filter.length > 0
-    ? `${url}?filter=${filter.join(',')}`
-    : url
-  return axios.get(url)
-    .then(
-      response => response.data,
-      err => {
-        if (err.response) {
-          log.error(`failed to get candidates: ${err.response.status} - ${err.response.data}`)
-          return {}
-        } else {
-          log.error(`no response from server '${axios.defaults.baseURL}' - cannot get upgrade candidates due to error: ${err.stack}`)
-        }
-      }
-    )
-}
-
-function getClusters () {
-  return axios.get('/api/cluster')
-    .then(
-      response => response.data.clusters,
-      err => {
-        if (err.response) {
-          log.error(`failed to get cluster list: ${err.response.status} - ${err.response.data}`)
-        } else {
-          log.error(`no response from server '${axios.defaults.baseURL}' - cannot get cluster list due to error: ${err.stack}`)
-        }
-        return []
-      }
-    )
-}
-
-function addCluster (name, url) {
-  return axios.post(
+function addCluster (instance, name, url) {
+  return instance.post(
     '/api/cluster',
     {
       headers: {
@@ -77,59 +14,202 @@ function addCluster (name, url) {
   ).then(
     response => response.status === 201,
     err => {
+      let message = ''
       if (err.response) {
-        log.error(`failed to add cluster: ${err.response.status} - ${err.response.data}`)
-        return false
+        message = `failed to add cluster: ${err.response.status} - ${err.response.data}`
       } else {
-        log.error(`no response from server '${axios.defaults.baseURL}' - cannot add cluster due to error: ${err.stack}`)
+        message = `no response from server '${axios.defaults.baseURL}' - cannot add cluster due to error: ${err.stack}`
       }
+      log.error(message)
+      throw new Error(message)
     }
   )
 }
 
-function removeCluster (name) {
-  return axios.delete(
-    `/api/cluster/${name}`
-  ).then(
-    response => response.status === 204,
-    err => {
-      if (err.response) {
-        log.error(`failed to remove cluster: ${err.response.status} - ${err.response.data}`)
-        return false
-      } else {
-        log.error(`no response from server '${axios.defaults.baseURL}' - cannot remove cluster due to error: ${err.stack}`)
+function findWorkloads (instance, name, image) {
+  let url = `/api/cluster/${name}/workload/${image}`
+  return instance.get(url)
+    .then(
+      response => response.data,
+      err => {
+        let message = ''
+        if (err.response) {
+          message = `failed to find workloads: ${err.response.status} - ${err.response.data}`
+        } else {
+          message = `no response from server '${axios.defaults.baseURL}' - cannot find workloads due to error: ${err.stack}`
+        }
+        log.error(message)
+        throw new Error(message)
       }
-    }
-  )
+    )
 }
 
-function upgradeWorkloads (name, image, filter) {
+function findWorkloadsOnAll (instance, image) {
+  let url = `/api/cluster/workload/${image}`
+  return instance.get(url)
+    .then(
+      response => response.data,
+      err => {
+        let message = ''
+        if (err.response) {
+          message = `failed to find workloads on all clusters: ${err.response.status} - ${err.response.data}`
+        } else {
+          message = `no response from server '${axios.defaults.baseURL}' - cannot find workloads for all clusters due to error: ${err.stack}`
+        }
+        log.error(message)
+        throw new Error(message)
+      }
+    )
+}
+
+function getCandidates (instance, name, image, filter) {
   let url = `/api/cluster/${name}/image/${image}`
   url = filter && filter.length > 0
     ? `${url}?filter=${filter.join(',')}`
     : url
-  return axios.post(url)
+  return instance.get(url)
     .then(
       response => response.data,
       err => {
+        let message = ''
         if (err.response) {
-          log.error(`failed to upgrade workloads: ${err.response.status} - ${err.response.data}`)
-          return {}
+          message = `failed to get upgrade candidates: ${err.response.status} - ${err.response.data}`
         } else {
-          log.error(`no response from server '${axios.defaults.baseURL}' - cannot update workloads due to error: ${err.stack}`)
+          message = `no response from server '${axios.defaults.baseURL}' - cannot get upgrade candidates due to error: ${err.stack}`
         }
+        log.error(message)
+        throw new Error(message)
+      }
+    )
+}
+
+function getCandidatesOnAll (instance, image, filter) {
+  let url = `/api/cluster/image/${image}`
+  url = filter && filter.length > 0
+    ? `${url}?filter=${filter.join(',')}`
+    : url
+  return instance.get(url)
+    .then(
+      response => response.data,
+      err => {
+        let message = ''
+        if (err.response) {
+          message = `failed to get upgrade candidates on all clusters: ${err.response.status} - ${err.response.data}`
+        } else {
+          message = `no response from server '${axios.defaults.baseURL}' - cannot get upgrade candidates due to error: ${err.stack}`
+        }
+        log.error(message)
+        throw new Error(message)
+      }
+    )
+}
+
+function getClusters (instance) {
+  return instance.get('/api/cluster')
+    .then(
+      response => response.data.clusters,
+      err => {
+        let message = ''
+        if (err.response) {
+          message = `failed to get cluster list: ${err.response.status} - ${err.response.data}`
+        } else {
+          message = `no response from server '${axios.defaults.baseURL}' - cannot get cluster list due to error: ${err.stack}`
+        }
+        log.error(message)
+        throw new Error(message)
+      }
+    )
+}
+
+function getInstance (config) {
+  const publicKey = keys.read(log, config.keys.hubPublic)
+  const privateKey = keys.read(log, config.keys.clientPrivate)
+  const { token, signature } = keys.encrypt(
+    publicKey,
+    privateKey,
+    config.tokens.api
+  )
+  const instance = axios.create()
+  instance.defaults.baseURL = config.hubUrl
+  instance.defaults.headers.authorization = token.toString('base64')
+  instance.defaults.headers.signature = signature.toString('base64')
+  if (config.timeout) {
+    instance.defaults.timeout = config.timeout
+  }
+  return instance
+}
+
+function removeCluster (instance, name) {
+  return instance.delete(
+    `/api/cluster/${name}`
+  ).then(
+    response => response.status === 204,
+    err => {
+      let message = ''
+      if (err.response) {
+        message = `failed to remove cluster: ${err.response.status} - ${err.response.data}`
+      } else {
+        message = `no response from server '${axios.defaults.baseURL}' - cannot remove cluster due to error: ${err.stack}`
+      }
+      log.error(message)
+      throw new Error(message)
+    }
+  )
+}
+
+function upgradeWorkloads (instance, name, image, filter) {
+  let url = `/api/cluster/${name}/image/${image}`
+  url = filter && filter.length > 0
+    ? `${url}?filter=${filter.join(',')}`
+    : url
+  return instance.post(url)
+    .then(
+      response => response.data,
+      err => {
+        let message = ''
+        if (err.response) {
+          message = `failed to upgrade workloads: ${err.response.status} - ${err.response.data}`
+        } else {
+          message = `no response from server '${axios.defaults.baseURL}' - cannot update workloads due to error: ${err.stack}`
+        }
+        log.error(message)
+        throw new Error(message)
+      }
+    )
+}
+
+function upgradeWorkloadsOnAll (instance, image, filter) {
+  let url = `/api/cluster/image/${image}`
+  url = filter && filter.length > 0
+    ? `${url}?filter=${filter.join(',')}`
+    : url
+  return instance.post(url)
+    .then(
+      response => response.data,
+      err => {
+        let message = ''
+        if (err.response) {
+          message = `failed to upgrade workloads on all clusters: ${err.response.status} - ${err.response.data}`
+        } else {
+          message = `no response from server '${axios.defaults.baseURL}' - cannot update workloads due to error: ${err.stack}`
+        }
+        log.error(message)
+        throw new Error(message)
       }
     )
 }
 
 module.exports = function (config) {
-  setDefaults(config)
+  const instance = getInstance(config)
   return {
-    addCluster,
-    findWorkloads,
-    getCandidates,
-    getClusters,
-    removeCluster,
-    upgradeWorkloads
+    addCluster: addCluster.bind(null, instance),
+    findWorkloads: findWorkloads.bind(null, instance),
+    findWorkloadsOnAll: findWorkloadsOnAll.bind(null, instance),
+    getCandidates: getCandidates.bind(null, instance),
+    getCandidatesOnAll: getCandidatesOnAll.bind(null, instance),
+    getClusters: getClusters.bind(null, instance),
+    removeCluster: removeCluster.bind(null, instance),
+    upgradeWorkloads: upgradeWorkloads.bind(null, instance),
+    upgradeWorkloadsOnAll: upgradeWorkloadsOnAll.bind(null, instance)
   }
 }

@@ -13,12 +13,17 @@ function build () {
       alias: 'i',
       describe: 'image description (docker image spec)',
       demandOption: true
+    },
+    filter: {
+      alias: 'f',
+      describe: 'specify which fields must match in order to be eligible for upgrade',
+      choices: ['imageName', 'imageOwner', 'owner', 'repo', 'branch', 'fullVersion', 'version', 'build', 'commit']
     }
   }
 }
 
 function handle (comhub, log, argv) {
-  comhub.upgradeWorkloads(argv.name, argv.image)
+  comhub.upgradeWorkloads(argv.name, argv.image, argv.filter)
     .then(
       results => {
         if (results.upgrade.length) {

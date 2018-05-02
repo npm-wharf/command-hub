@@ -2,22 +2,29 @@ const axios = require('axios')
 const keys = require('./keys')()
 const log = require('bole')('hikaru-client')
 
-function setDefaults (config) {
-  const publicKey = keys.read(log, config.keys.hikaruPublic)
-  const privateKey = keys.read(log, config.keys.hubPrivate)
-  const {token, signature} = keys.encrypt(
-    publicKey,
-    privateKey,
-    config.tokens.hikaru
-  )
-  axios.defaults.headers.authorization = `bearer: ${token.toString('base64')}`
-  axios.defaults.headers.signature = signature.toString('base64')
+function getInstance (config) {
+  const instance = axios.create()
+  if (config.tokens && config.tokens.hikaru) {
+    const publicKey = keys.read(log, config.keys.hikaruPublic)
+    const privateKey = keys.read(log, config.keys.hubPrivate)
+    const { token, signature } = keys.encrypt(
+      publicKey,
+      privateKey,
+      config.tokens.hikaru
+    )
+    instance.defaults.headers.authorization = `bearer: ${token.toString('base64')}`
+    instance.defaults.headers.signature = signature.toString('base64')
+  }
+  if (config.timeout) {
+    instance.defaults.timeout = config.timeout
+  }
+  return instance
 }
 
-async function findWorkloads (clusters, name, image) {
+async function findWorkloads (clusters, instance, name, image) {
   let cluster = await clusters.get(name)
   let url = `${cluster}/api/workload/${image}`
-  return axios.get(url)
+  return instance.get(url)
     .then(
       response => response.data,
       err => {
@@ -31,13 +38,13 @@ async function findWorkloads (clusters, name, image) {
     )
 }
 
-async function getCandidates (clusters, name, image, filter) {
+async function getCandidates (clusters, instance, name, image, filter) {
   let cluster = await clusters.get(name)
   let url = `${cluster}/api/image/${image}`
   url = filter && filter.length > 0
     ? `${url}?filter=${filter.join(',')}`
     : url
-  return axios.get(url)
+  return instance.get(url)
     .then(
       response => response.data,
       err => {
@@ -47,13 +54,13 @@ async function getCandidates (clusters, name, image, filter) {
     )
 }
 
-async function upgradeWorkloads (clusters, name, image, filter) {
+async function upgradeWorkloads (clusters, instance, name, image, filter) {
   let cluster = await clusters.get(name)
   let url = `${cluster}/api/image/${image}`
   url = filter && filter.length > 0
     ? `${url}?filter=${filter.join(',')}`
     : url
-  return axios.post(url)
+  return instance.post(url)
     .then(
       response => response.data,
       err => {
@@ -64,12 +71,10 @@ async function upgradeWorkloads (clusters, name, image, filter) {
 }
 
 module.exports = function (config, clusters) {
-  if (config.tokens && config.tokens.hikaru) {
-    setDefaults(config)
-  }
+  const instance = getInstance(config)
   return {
-    findWorkloads: findWorkloads.bind(null, clusters),
-    getCandidates: getCandidates.bind(null, clusters),
-    upgradeWorkloads: upgradeWorkloads.bind(null, clusters)
+    findWorkloads: findWorkloads.bind(null, clusters, instance),
+    getCandidates: getCandidates.bind(null, clusters, instance),
+    upgradeWorkloads: upgradeWorkloads.bind(null, clusters, instance)
   }
 }

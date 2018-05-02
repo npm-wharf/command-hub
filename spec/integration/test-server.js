@@ -13,11 +13,11 @@ module.exports = function (config) {
     port: config.port
   }
 
-  const hikaru = require('../../src/hikaru')(config)
-
   const clusters = config.redisUrl
     ? Redis(config)
     : Client(config)
+
+  const hikaru = require('../../src/hikaru')(config, clusters)
 
   const dependencies = {
     fount,

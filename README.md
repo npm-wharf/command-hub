@@ -272,6 +272,92 @@ So that it would upgrade any workload using any `etcd` image regardless of wheth
 }
 ```
 
+### Upgrade All Clusters' Workloads With Image
+
+> NOTES: this call will likely take some time to complete and is very close to the cluster-specific upgrade call. Please be careful when issuing upgrades.
+
+Returns a hash containing lists of workloads for each cluster upgraded. The top level key is the cluster alias. 
+ * `url` the url for the cluster's hikaru endpoint
+ * `upgrade` has the list of workloads upgraded 
+ * `obsolete` is the list of compatible workloads that have a newer version than the posted image
+ * `equal` is the list of compatible workloads that already have the image
+ * `error` is the list of workloads that were ignored which includes a `diff` property with a brief explanation of why they were ignored
+
+On failure, the properties returned change to:
+
+ * `url` the url for the cluster's hikaru endpoint
+ * `failed` -> `true`
+ * `message` a simple explanation that the upgrade failed
+ * `error` the stack track containing details for the failure
+
+`POST /api/cluster/image/{image}?filter=`
+`POST /api/cluster/image/{repo}/{image}?filter=`
+`POST /api/cluster/image/{registry}/{repo}/{image}?filter=`
+
+The filter query parameters accepts a comma delimited list of fields that you want used to determine upgrade eligibility. Valid fields are:
+
+  * `imageName`
+  * `imageOwner`
+  * `owner`
+  * `repo`
+  * `branch`
+  * `fullVersion`
+  * `version`
+  * `build`
+  * `commit`
+
+The reason for the multiple forms may not be obvious until you see examples:
+
+`POST /api/cluster/image/nginx:1.13-alpine`
+`POST /api/cluster/image/arobson/hikaru:latest`
+`POST /api/cluster/image/quay.io/coreos/etcd:v3.3.3`
+
+You could make the last form more permissive by telling it to only consider the `imageOwner`:
+
+`POST /api/cluster/image/quay.io/coreos/etcd:v3.3.3?filter=imageOwner`
+
+So that it would upgrade any workload using any `etcd` image regardless of whether or not it was the coreos Docker image or not.
+
+#### Response
+
+`content-type: application/json`
+
+`200 OK`
+
+```json
+{
+  "upgrade": [ 
+    {
+      "namespace": "namespace-name",
+      "type": "workload-type",
+      "service": "workload-name",
+      "image": "docker-repo/docker-image:tag",
+      "container": "container-name",
+      "metadata": {
+          "imageName": "docker-image",
+          "imageOwner": "docker-repo",
+          "owner": "tag-owner or docker-repo",
+          "repo": "tag-repo or docker-repo",
+          "branch": "tag-master or 'master'",
+          "fullVersion": "tag-version-and-prerelease or 'latest'",
+          "version": "tag-version or 'latest'",
+          "prerelease": "tag-prerelease or null"
+      },
+      "labels": {
+          "name": "workload-name",
+          "namespace": "workload-namespace-name"
+      },
+      "diff": "upgrade|obsolete|equal|error",
+      "comparedTo": "full-image-spec-used-in-call"
+    } 
+  ],
+  "obsolete": [],
+  "equal": [],
+  "error": []
+}
+```
+
+
 ### Find Workloads By Image
 
 Returns metadata for any workload that has an image matching the text supplied.
@@ -343,7 +429,40 @@ comhub cluster remove {name}
 ### Get Upgrade Candidates
 
 ```shell
-comhub candidates --cluster {name} --image {spec} --filter {properties}
+comhub get candidates --cluster {name} --image {spec} --filter {properties}
+```
+
+The `image` argument accepts any valid Docker image specification:
+
+ * `image:tag` - official images in Docker Hub
+ * `repo/image:tag` - images in Docker Hub
+ * `registry/repo/image:tag` - images in other registries
+
+The `filter` argument accepts a comma delimited list of fields that you want used to determine upgrade eligibility. Valid fields are:
+
+  * `imageName`
+  * `imageOwner`
+  * `owner`
+  * `repo`
+  * `branch`
+  * `fullVersion`
+  * `version`
+  * `build`
+  * `commit`
+
+Returns upgrade candidate workloads grouped by lists:
+
+ * workloads to be upgraded are in the the `upgrade` list . 
+ * workloads with a newer version are in the `obsolete` list.
+ * workloads with the supplied version are in the `equal` list.
+ * ignored workloads are in the `error` list.
+
+### Get Upgrade Candidates On All Clusters
+
+Returns upgrade candidates but grouped by cluster along with count summaries:
+
+```shell
+comhub get-all candidates --image {spec} --filter {properties}
 ```
 
 The `image` argument accepts any valid Docker image specification:
@@ -402,6 +521,39 @@ Upgrades eligible workloads and returns them in the following lists:
  * workloads skipped because they already have the supplied version are in the `equal` list.
  * ignored workloads are in the `error` list.
 
+### Upgrade Workloads On All Clusters With Image
+
+Upgrade workloads across all known clusters.
+
+```shell
+comhub upgrade-all --image {spec} --filter {properties}
+```
+
+The `image` argument accepts any valid Docker image specification:
+
+ * `image:tag` - official images in Docker Hub
+ * `repo/image:tag` - images in Docker Hub
+ * `registry/repo/image:tag` - images in other registries
+
+The `filter` argument accepts a comma delimited list of fields that you want used to determine upgrade eligibility. Valid fields are:
+
+  * `imageName`
+  * `imageOwner`
+  * `owner`
+  * `repo`
+  * `branch`
+  * `fullVersion`
+  * `version`
+  * `build`
+  * `commit`
+
+Upgrades eligible workloads and returns them in the following lists:
+
+ * workloads that were upgraded are in the the `upgrade` list .
+ * workloads skipped because they have a newer version are in the `obsolete` list.
+ * workloads skipped because they already have the supplied version are in the `equal` list.
+ * ignored workloads are in the `error` list.
+
 ### Find Workloads By Image
 
 Returns metadata for any workload that has an image matching the text supplied.
@@ -412,10 +564,21 @@ comhub find --cluster {name} --image {fragment}
 
 Where `image` can match any part of the image specification: registry, repo or image name.
 
+### Find Workloads By Image On All Clusters
+
+Returns metadata for any workload that has an image matching the text supplied (across all clusters):
+
+```shell
+comhub find-all --image {fragment}
+```
+
+Results are presented grouped by cluster.
+
+Where `image` can match any part of the image specification: registry, repo or image name.
+
 ## If Providing A Cluster API
 
 The expected format of data from the list API is for a `name` or `id` property to match the cluster identifier and for a `url` property to provide the endpoint where the cluster can be contacted. If a `hikaru` subdomain is not how to reach the hikaru API for the cluster, then a `hikaru` property should be present on the cluster to specify the route which hikaru's API can be reached.
-
 
 [travis-url]: https://travis-ci.org/npm-wharf/command-hub
 [travis-image]: https://travis-ci.org/npm-wharf/command-hub.svg?branch=master
