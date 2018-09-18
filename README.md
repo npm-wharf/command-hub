@@ -79,13 +79,12 @@ Retrieves a list of clusters.
 #### Response
 
 `content-type: application/json`
-
 `200 OK`
 
 ```json
 {
   "clusters": [
-  	{ "name": "one", "url": "https://one.root.net" },
+  	{ "name": "one", "url": "https://one.root.net", "channel": "production" },
   	{ "name": "two", "url": "https://two.root.net" }
   ]
 }
@@ -100,7 +99,8 @@ Adds a cluster endpoint. Only used if using a backing store instead of calling t
 ```json
 {
   "name": "one",
-  "url": "https://one.root.net"
+  "url": "https://one.root.net",
+  "channel": "production" // optional
 }
 ```
 
@@ -129,7 +129,9 @@ Returns a hash containing lists of workloads:
  * `error` is the list of workloads that were ignored which includes a `diff` property with a brief explanation of why they were ignored 
 
 `GET /api/cluster/{name}/image/{image}?filter=`
+
 `GET /api/cluster/{name}/image/{repo}/{image}?filter=`
+
 `GET /api/cluster/{name}/image/{registry}/{repo}/{image}?filter=`
 
 The filter query parameters accepts a comma delimited list of fields that you want used to determine upgrade eligibility. Valid fields are:
@@ -147,7 +149,9 @@ The filter query parameters accepts a comma delimited list of fields that you wa
 The reason for the multiple forms may not be obvious until you see examples:
 
 `GET /api/cluster/one/image/nginx:1.13-alpine`
+
 `GET /api/cluster/one/image/arobson/hikaru:latest`
+
 `GET /api/cluster/one/image/quay.io/coreos/etcd:v3.3.3`
 
 You could make the last form more permissive by telling it to only consider the `imageOwner`:
@@ -159,36 +163,34 @@ So that it would upgrade any workload using any `etcd` image regardless of wheth
 #### Response
 
 `content-type:  "application/json"`
-
 `200 OK`
 
 ```json
 {
   "upgrade": [ 
     {
-      {
-        "namespace": "namespace-name",
-        "type": "workload-type",
-        "service": "workload-name",
-        "image": "docker-repo/docker-image:tag",
-        "container": "container-name",
-        "metadata": {
-            "imageName": "docker-image",
-            "imageOwner": "docker-repo",
-            "owner": "tag-owner or docker-repo",
-            "repo": "tag-repo or docker-repo",
-            "branch": "tag-master or 'master'",
-            "fullVersion": "tag-version-and-prerelease or 'latest'",
-            "version": "tag-version or 'latest'",
-            "prerelease": "tag-prerelease or null"
-        },
-        "labels": {
-            "name": "workload-name",
-            "namespace": "workload-namespace-name"
-        },
-        "diff": "upgrade|obsolete|equal|error",
-        "comparedTo": "full-image-spec-used-in-call"
-        }
+      "namespace": "namespace-name",
+      "type": "workload-type",
+      "service": "workload-name",
+      "image": "docker-repo/docker-image:tag",
+      "container": "container-name",
+      "metadata": {
+          "imageName": "docker-image",
+          "imageOwner": "docker-repo",
+          "owner": "tag-owner or docker-repo",
+          "repo": "tag-repo or docker-repo",
+          "branch": "tag-master or 'master'",
+          "fullVersion": "tag-version-and-prerelease or 'latest'",
+          "version": "tag-version or 'latest'",
+          "prerelease": "tag-prerelease or null"
+      },
+      "labels": {
+          "name": "workload-name",
+          "namespace": "workload-namespace-name"
+      },
+      "diff": "upgrade|obsolete|equal|error",
+      "comparedTo": "full-image-spec-used-in-call"
+      }
     } 
   ],
   "obsolete": [],
@@ -206,7 +208,9 @@ Returns a hash containing lists of workloads.
  * `error` is the list of workloads that were ignored which includes a `diff` property with a brief explanation of why they were ignored 
 
 `POST /api/cluster/{name}/image/{image}?filter=`
+
 `POST /api/cluster/{name}/image/{repo}/{image}?filter=`
+
 `POST /api/cluster/{name}/image/{registry}/{repo}/{image}?filter=`
 
 The filter query parameters accepts a comma delimited list of fields that you want used to determine upgrade eligibility. Valid fields are:
@@ -224,7 +228,9 @@ The filter query parameters accepts a comma delimited list of fields that you wa
 The reason for the multiple forms may not be obvious until you see examples:
 
 `POST /api/cluster/one/image/nginx:1.13-alpine`
+
 `POST /api/cluster/one/image/arobson/hikaru:latest`
+
 `POST /api/cluster/one/image/quay.io/coreos/etcd:v3.3.3`
 
 You could make the last form more permissive by telling it to only consider the `imageOwner`:
@@ -236,7 +242,6 @@ So that it would upgrade any workload using any `etcd` image regardless of wheth
 #### Response
 
 `content-type: application/json`
-
 `200 OK`
 
 ```json
@@ -272,7 +277,95 @@ So that it would upgrade any workload using any `etcd` image regardless of wheth
 }
 ```
 
-### Upgrade All Clusters' Workloads With Image
+### Upgrade All Clusters' In CHannel Workloads With Image
+
+Returns a hash containing lists of workloads for each cluster upgraded. The top level key is the cluster alias. 
+ * `url` the url for the cluster's hikaru endpoint
+ * `upgrade` has the list of workloads upgraded 
+ * `obsolete` is the list of compatible workloads that have a newer version than the posted image
+ * `equal` is the list of compatible workloads that already have the image
+ * `error` is the list of workloads that were ignored which includes a `diff` property with a brief explanation of why they were ignored
+
+On failure, the properties returned change to:
+
+ * `url` the url for the cluster's hikaru endpoint
+ * `failed` -> `true`
+ * `message` a simple explanation that the upgrade failed
+ * `error` the stack track containing details for the failure
+
+`POST /api/channel/{channel}/image/{image}?filter=`
+
+`POST /api/channel/{channel}/image/{repo}/{image}?filter=`
+
+`POST /api/channel/{channel}/image/{registry}/{repo}/{image}?filter=`
+
+The filter query parameters accepts a comma delimited list of fields that you want used to determine upgrade eligibility. Valid fields are:
+
+  * `imageName`
+  * `imageOwner`
+  * `owner`
+  * `repo`
+  * `branch`
+  * `fullVersion`
+  * `version`
+  * `build`
+  * `commit`
+
+The reason for the multiple forms may not be obvious until you see examples:
+
+`POST /api/channel/staging/image/nginx:1.13-alpine`
+
+`POST /api/channel/staging/image/arobson/hikaru:latest`
+
+`POST /api/channel/staging/image/quay.io/coreos/etcd:v3.3.3`
+
+You could make the last form more permissive by telling it to only consider the `imageOwner`:
+
+`POST /api/channel/staging/image/quay.io/coreos/etcd:v3.3.3?filter=imageOwner`
+
+So that it would upgrade any workload using any `etcd` image regardless of whether or not it was the coreos Docker image or not.
+
+#### Response
+
+`content-type: application/json`
+`200 OK`
+
+```json
+{
+  "upgrade": [ 
+    {
+      "namespace": "namespace-name",
+      "type": "workload-type",
+      "service": "workload-name",
+      "image": "docker-repo/docker-image:tag",
+      "container": "container-name",
+      "metadata": {
+          "imageName": "docker-image",
+          "imageOwner": "docker-repo",
+          "owner": "tag-owner or docker-repo",
+          "repo": "tag-repo or docker-repo",
+          "branch": "tag-master or 'master'",
+          "fullVersion": "tag-version-and-prerelease or 'latest'",
+          "version": "tag-version or 'latest'",
+          "prerelease": "tag-prerelease or null"
+      },
+      "labels": {
+          "name": "workload-name",
+          "namespace": "workload-namespace-name"
+      },
+      "diff": "upgrade|obsolete|equal|error",
+      "comparedTo": "full-image-spec-used-in-call"
+    } 
+  ],
+  "obsolete": [],
+  "equal": [],
+  "error": []
+}
+```
+
+
+
+### Upgrade All Clusters' Without a Channel
 
 > NOTES: this call will likely take some time to complete and is very close to the cluster-specific upgrade call. Please be careful when issuing upgrades.
 
@@ -291,7 +384,9 @@ On failure, the properties returned change to:
  * `error` the stack track containing details for the failure
 
 `POST /api/cluster/image/{image}?filter=`
+
 `POST /api/cluster/image/{repo}/{image}?filter=`
+
 `POST /api/cluster/image/{registry}/{repo}/{image}?filter=`
 
 The filter query parameters accepts a comma delimited list of fields that you want used to determine upgrade eligibility. Valid fields are:
@@ -309,7 +404,9 @@ The filter query parameters accepts a comma delimited list of fields that you wa
 The reason for the multiple forms may not be obvious until you see examples:
 
 `POST /api/cluster/image/nginx:1.13-alpine`
+
 `POST /api/cluster/image/arobson/hikaru:latest`
+
 `POST /api/cluster/image/quay.io/coreos/etcd:v3.3.3`
 
 You could make the last form more permissive by telling it to only consider the `imageOwner`:
@@ -321,7 +418,6 @@ So that it would upgrade any workload using any `etcd` image regardless of wheth
 #### Response
 
 `content-type: application/json`
-
 `200 OK`
 
 ```json
@@ -363,7 +459,9 @@ So that it would upgrade any workload using any `etcd` image regardless of wheth
 Returns metadata for any workload that has an image matching the text supplied.
 
 `GET /api/cluster/one/workload/{image}`
+
 `GET /api/cluster/one/workload/{repo}/{image}`
+
 `GET /api/cluster/one/workload/{registry}/{repo}/{image}`
 
 The primary difference between this and the call for upgrade candidates is that this considers anything that matches whatever image segment is provided and returns a single list with no consideration given to upgrade eligibility.
@@ -376,9 +474,8 @@ It's just there to make it easy to:
 
 #### Result
 
-`200 OK`
-
 `content-type: application/json`
+`200 OK`
 
 ```json
 [
