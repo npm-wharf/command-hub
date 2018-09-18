@@ -17,7 +17,8 @@ describe('redis', function () {
       redis.add('three', 'https://hikaru.three.npme.io'),
       redis.add('four', 'https://hikaru.four.npme.io'),
       redis.add('five', 'https://hikaru.five.npme.io'),
-      redis.add('six', 'https://hikaru.six.npme.io')
+      redis.add('six', 'https://hikaru.six.npme.io', 'integration'),
+      redis.add('integration', 'https://hikaru.int.npme.io', 'integration')
     ]))
   })
 
@@ -28,32 +29,47 @@ describe('redis', function () {
       { cluster: 'three', url: 'https://hikaru.three.npme.io' },
       { cluster: 'four', url: 'https://hikaru.four.npme.io' },
       { cluster: 'five', url: 'https://hikaru.five.npme.io' },
-      { cluster: 'six', url: 'https://hikaru.six.npme.io' }
+      { cluster: 'six', url: 'https://hikaru.six.npme.io', channel: 'integration' },
+      { cluster: 'integration', url: 'https://hikaru.int.npme.io', channel: 'integration' }
     ])
   })
 
   it('should get url for existing clusters', function () {
-    return redis.get('three').should.eventually.eql('https://hikaru.three.npme.io')
+    return redis.get('three').should.eventually.eql({
+      cluster: 'three',
+      url: 'https://hikaru.three.npme.io'
+    })
   })
 
   it('should return null for non-existing clusters', function () {
     return redis.get('seven').should.eventually.eql(null)
   })
 
-  it('should remove clusters correctly', function () {
-    return (Promise.all([
+  it('should get clusters by channel', async () => {
+    const list = await redis.listByChannel('integration')
+    list.sort().should.eql([
+      { cluster: 'integration', url: 'https://hikaru.int.npme.io', channel: 'integration' },
+      { cluster: 'six', url: 'https://hikaru.six.npme.io', channel: 'integration' }
+    ])
+  })
+
+  it('should get no clusters in a non-existant channel', async () => {
+    const list = await redis.listByChannel('lol-no')
+    list.should.eql([])
+  })
+
+  it('should remove clusters correctly', async () => {
+    await Promise.all([
       redis.remove('two'),
       redis.remove('four'),
       redis.remove('six')
-    ])).then(
-      () => {
-        return (Promise.all([
-          redis.add('one', 'https://hikaru.one.npme.io'),
-          redis.add('three', 'https://hikaru.three.npme.io'),
-          redis.add('five', 'https://hikaru.five.npme.io')
-        ]))
-      }
-    )
+    ])
+    return redis.list().should.eventually.eql([
+      {cluster: 'one', url: 'https://hikaru.one.npme.io'},
+      {cluster: 'three', url: 'https://hikaru.three.npme.io'},
+      {cluster: 'five', url: 'https://hikaru.five.npme.io'},
+      { cluster: 'integration', url: 'https://hikaru.int.npme.io', channel: 'integration' }
+    ])
   })
 
   after(function () {
