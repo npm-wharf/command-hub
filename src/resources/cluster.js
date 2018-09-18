@@ -17,11 +17,11 @@ module.exports = function (config, clusters, hikaru) {
         method: 'POST',
         url: '',
         handle: (env) => {
-          const { name, url } = env.data.data
+          const { name, url, channel } = env.data.data
           if (!name || !url) {
             return { status: 400, data: 'Invalid Request - name and url are required to add a cluster' }
           }
-          return clusters.add(name, url)
+          return clusters.add(name, url, channel)
             .then(
               () => { return { status: 201, data: 'cluster added' } },
               err => {
@@ -64,9 +64,9 @@ module.exports = function (config, clusters, hikaru) {
           const filter = env.data.filter ? env.data.filter.split(',') : []
           return clusters.list()
             .then(
-              clusters => {
+              list => {
                 const set = {}
-                let promises = clusters.map(def => {
+                let promises = list.map(def => {
                   return hikaru.getCandidates(def.cluster, image, filter)
                     .then(
                       candidates => {

@@ -3,9 +3,7 @@ require('../setup')
 const HIKARU_URL = 'http://hikaru.fake.com'
 const Hikaru = require('../../src/hikaru')
 const clusters = {
-  get: function (name) {
-    return Promise.resolve(HIKARU_URL)
-  }
+  get: async (name) => ({ url: HIKARU_URL })
 }
 
 describe('Hikaru Client', function () {

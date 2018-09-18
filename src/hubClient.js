@@ -2,14 +2,14 @@ const axios = require('axios')
 const keys = require('./keys')()
 const log = require('bole')('hub-client')
 
-function addCluster (instance, name, url) {
+function addCluster (instance, name, url, channel) {
   return instance.post(
     '/api/cluster',
     {
       headers: {
         'content-type': 'application/json'
       },
-      data: { name, url }
+      data: { name, url, channel }
     }
   ).then(
     response => response.status === 201,

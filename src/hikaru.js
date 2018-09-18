@@ -22,8 +22,8 @@ function getInstance (config) {
 }
 
 async function findWorkloads (clusters, instance, name, image) {
-  let cluster = await clusters.get(name)
-  let url = `${cluster}/api/workload/${image}`
+  let {url: hikaruBase} = await clusters.get(name)
+  let url = `${hikaruBase}/api/workload/${image}`
   return instance.get(url)
     .then(
       response => response.data,
@@ -31,7 +31,7 @@ async function findWorkloads (clusters, instance, name, image) {
         if (err.response) {
           log.error(`failed to find workloads: ${err.response.status} - ${err.response.data}`)
         } else {
-          log.error(`failed to call hikaru endpoint '${cluster}' with ${err.stack}`)
+          log.error(`failed to call hikaru endpoint '${url}' with ${err.stack}`)
         }
         throw new Error(`failed to search workloads on cluster '${name}'`)
       }
@@ -39,8 +39,8 @@ async function findWorkloads (clusters, instance, name, image) {
 }
 
 async function getCandidates (clusters, instance, name, image, filter) {
-  let cluster = await clusters.get(name)
-  let url = `${cluster}/api/image/${image}`
+  let {url: hikaruBase} = await clusters.get(name)
+  let url = `${hikaruBase}/api/image/${image}`
   url = filter && filter.length > 0
     ? `${url}?filter=${filter.join(',')}`
     : url
@@ -55,8 +55,8 @@ async function getCandidates (clusters, instance, name, image, filter) {
 }
 
 async function upgradeWorkloads (clusters, instance, name, image, filter) {
-  let cluster = await clusters.get(name)
-  let url = `${cluster}/api/image/${image}`
+  let {url: hikaruBase} = await clusters.get(name)
+  let url = `${hikaruBase}/api/image/${image}`
   url = filter && filter.length > 0
     ? `${url}?filter=${filter.join(',')}`
     : url
