@@ -47,10 +47,13 @@ describe('redis', function () {
 
   it('should get clusters by channel', async () => {
     const list = await redis.listByChannel('integration')
-    list.sort().should.eql([
-      { cluster: 'integration', url: 'https://hikaru.int.npme.io', channel: 'integration' },
+    list.length.should.equal(2)
+    list.find(o => o.cluster === 'integration').should.eql(
+      { cluster: 'integration', url: 'https://hikaru.int.npme.io', channel: 'integration' }
+    )
+    list.find(o => o.cluster === 'six').should.eql(
       { cluster: 'six', url: 'https://hikaru.six.npme.io', channel: 'integration' }
-    ])
+    )
   })
 
   it('should get no clusters in a non-existant channel', async () => {
