@@ -11,7 +11,7 @@ describe('Hub Client Integration Test', function () {
     let deftly
     let config
     let client
-    before(function () {
+    before(async () => {
       config = {
         tokens: {
           api: 'test-token-1'
@@ -35,11 +35,8 @@ describe('Hub Client Integration Test', function () {
           level: 'info'
         }
       }
-      return server(config)
-        .then(instance => {
-          deftly = instance
-          client = new HubClient(config)
-        })
+      deftly = await server(config)
+      client = new HubClient(config)
     })
 
     it('should add cluster successfully', function () {
@@ -605,28 +602,24 @@ describe('Hub Client Integration Test', function () {
             ])
         })
 
-        it('should return the list', function () {
-          return client.findWorkloads('test-two', 'test/image:tag')
-            .then(
-              result => {
-                return result.should.eql([
-                  {
-                    namespace: 'namespace',
-                    type: 'deployment',
-                    service: 'test-1',
-                    image: 'test/image:tag',
-                    container: 'test-1'
-                  },
-                  {
-                    namespace: 'namespace',
-                    type: 'statefulSet',
-                    service: 'test-2',
-                    image: 'test/image:tag',
-                    container: 'test-2'
-                  }
-                ])
-              }
-            )
+        it('should return the list', async () => {
+          const result = await client.findWorkloads('test-two', 'test/image:tag')
+          result.should.eql([
+            {
+              namespace: 'namespace',
+              type: 'deployment',
+              service: 'test-1',
+              image: 'test/image:tag',
+              container: 'test-1'
+            },
+            {
+              namespace: 'namespace',
+              type: 'statefulSet',
+              service: 'test-2',
+              image: 'test/image:tag',
+              container: 'test-2'
+            }
+          ])
         })
       })
 
@@ -915,16 +908,12 @@ describe('Hub Client Integration Test', function () {
       })
     })
 
-    after(function () {
+    after(async () => {
       nock.cleanAll()
       nock.restore()
-      return deftly.service.stop()
-        .then(
-          () => {
-            return deftly.clusters.clear()
-              .then(() => deftly.clusters.close())
-          }
-        )
+      await deftly.service.stop()
+      await deftly.clusters.clear()
+      await deftly.clusters.close()
     })
   })
 })

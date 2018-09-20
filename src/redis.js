@@ -7,7 +7,7 @@ async function addCluster (client, cluster, url, channel) {
   if (channel) {
     await client.hset(CHANNELS_KEY, cluster, channel)
     // this enables easy lookup by channel name
-    await client.sadd(`${CHANNELS_KEY}-${channel}`, cluster)
+    await client.sadd(`${CHANNELS_KEY}/${channel}`, cluster)
   }
 }
 
@@ -38,7 +38,7 @@ async function removeCluster (client, cluster) {
   const channel = await client.hget(CHANNELS_KEY, cluster)
   if (channel) {
     await client.hdel(CHANNELS_KEY, cluster)
-    await client.srem(`${CHANNELS_KEY}-${channel}`, cluster)
+    await client.srem(`${CHANNELS_KEY}/${channel}`, cluster)
   }
 }
 
@@ -57,7 +57,7 @@ async function listClusters (client) {
 }
 
 async function listClustersByChannel (client, channel) {
-  const clusters = await client.smembers(`${CHANNELS_KEY}-${channel}`)
+  const clusters = await client.smembers(`${CHANNELS_KEY}/${channel}`)
   return Promise.all(clusters.map(async name => {
     const url = await client.hget(LIST_KEY, name)
     return {cluster: name, url, channel}

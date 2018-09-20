@@ -277,7 +277,7 @@ So that it would upgrade any workload using any `etcd` image regardless of wheth
 }
 ```
 
-### Upgrade All Clusters' In CHannel Workloads With Image
+### Upgrade All Clusters' In Channel Workloads With Image
 
 Returns a hash containing lists of workloads for each cluster upgraded. The top level key is the cluster alias. 
  * `url` the url for the cluster's hikaru endpoint

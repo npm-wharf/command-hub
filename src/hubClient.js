@@ -30,7 +30,7 @@ function findWorkloads (instance, name, image) {
   let url = `/api/cluster/${name}/workload/${image}`
   return instance.get(url)
     .then(
-      response => response.data,
+      response => { log.info(response.data); return response.data },
       err => {
         let message = ''
         if (err.response) {
@@ -104,21 +104,32 @@ function getCandidatesOnAll (instance, image, filter) {
     )
 }
 
-function getClusters (instance) {
-  return instance.get('/api/cluster')
-    .then(
-      response => response.data.clusters,
-      err => {
-        let message = ''
-        if (err.response) {
-          message = `failed to get cluster list: ${err.response.status} - ${err.response.data}`
-        } else {
-          message = `no response from server '${axios.defaults.baseURL}' - cannot get cluster list due to error: ${err.stack}`
-        }
-        log.error(message)
-        throw new Error(message)
-      }
-    )
+async function getClusters (instance) {
+  const response = await instance.get('/api/cluster').catch(err => {
+    let message = ''
+    if (err.response) {
+      message = `failed to get cluster list: ${err.response.status} - ${err.response.data}`
+    } else {
+      message = `no response from server '${axios.defaults.baseURL}' - cannot get cluster list due to error: ${err.stack}`
+    }
+    log.error(message)
+    throw new Error(message)
+  })
+  return response.data.clusters
+}
+
+async function getClustersByChannel (instance, channel) {
+  const response = await instance.get(`/api/channel/${channel}`).catch(err => {
+    let message = ''
+    if (err.response) {
+      message = `failed to get cluster list: ${err.response.status} - ${err.response.data}`
+    } else {
+      message = `no response from server '${axios.defaults.baseURL}' - cannot get cluster list due to error: ${err.stack}`
+    }
+    log.error(message)
+    throw new Error(message)
+  })
+  return response.data.clusters
 }
 
 function getInstance (config) {
@@ -208,6 +219,7 @@ module.exports = function (config) {
     getCandidates: getCandidates.bind(null, instance),
     getCandidatesOnAll: getCandidatesOnAll.bind(null, instance),
     getClusters: getClusters.bind(null, instance),
+    getClustersByChannel: getClustersByChannel.bind(null, instance),
     removeCluster: removeCluster.bind(null, instance),
     upgradeWorkloads: upgradeWorkloads.bind(null, instance),
     upgradeWorkloadsOnAll: upgradeWorkloadsOnAll.bind(null, instance)
