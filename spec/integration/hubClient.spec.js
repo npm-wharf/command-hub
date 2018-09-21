@@ -1146,7 +1146,6 @@ describe('Hub Client Integration Test', function () {
         })
       })
 
-
       describe('when upgrading all workloads (successfully)', function () {
         before(function () {
           nock(HIKARU_INT_1)
