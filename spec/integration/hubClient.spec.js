@@ -18,6 +18,7 @@ const sorter = (a, b) => {
 }
 
 describe('Hub Client Integration Test', function () {
+  this.timeout(500)
   describe('with certs and specified token', function () {
     let deftly
     let config

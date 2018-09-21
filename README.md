@@ -514,7 +514,7 @@ comhub cluster list
 ### Add Cluster - optional
 
 ```shell
-comhub cluster add {name} {url}
+comhub cluster add -n {name} -u {url} -c [channel]
 ```
 
 ### Remove Cluster - optional
@@ -559,7 +559,7 @@ Returns upgrade candidate workloads grouped by lists:
 Returns upgrade candidates but grouped by cluster along with count summaries:
 
 ```shell
-comhub get-all candidates --image {spec} --filter {properties}
+comhub get-all candidates --image {spec} --filter {properties} --channel [channel]
 ```
 
 The `image` argument accepts any valid Docker image specification:
@@ -623,7 +623,7 @@ Upgrades eligible workloads and returns them in the following lists:
 Upgrade workloads across all known clusters.
 
 ```shell
-comhub upgrade-all --image {spec} --filter {properties}
+comhub upgrade-all --image {spec} --filter {properties} --channel [channel]
 ```
 
 The `image` argument accepts any valid Docker image specification:
@@ -666,7 +666,7 @@ Where `image` can match any part of the image specification: registry, repo or i
 Returns metadata for any workload that has an image matching the text supplied (across all clusters):
 
 ```shell
-comhub find-all --image {fragment}
+comhub find-all --image {fragment} --channel [channel]
 ```
 
 Results are presented grouped by cluster.
