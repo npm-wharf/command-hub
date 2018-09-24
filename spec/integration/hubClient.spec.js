@@ -864,6 +864,13 @@ describe('Hub Client Integration Test', function () {
           })
         })
 
+        describe('when listing channels (error)', function () {
+          it('should fail to add cluster (failure)', function () {
+            return client.getClustersByChannel('foo')
+              .should.eventually.be.rejectedWith('no response from server')
+          })
+        })
+
         describe('when getting workloads (error)', function () {
           it('should reject with an error', function () {
             return client.findWorkloads('test-two', 'test/image:tag')
@@ -885,6 +892,13 @@ describe('Hub Client Integration Test', function () {
           })
         })
 
+        describe('when getting workloads on channel (error)', function () {
+          it('should reject with an error', function () {
+            return client.findWorkloadsOnChannel('foo', 'test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
+        })
+
         describe('when getting upgrade candidates (error)', function () {
           it('should reject with an error', function () {
             return client.getCandidates('test-two', 'test/image:tag')
@@ -899,6 +913,13 @@ describe('Hub Client Integration Test', function () {
           })
         })
 
+        describe('when getting upgrade candidates on channel (error)', function () {
+          it('should reject with an error', function () {
+            return client.getCandidatesOnChannel('foo', 'test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
+        })
+
         describe('when getting upgrade candidates (error)', function () {
           it('should reject with an error', function () {
             return client.upgradeWorkloads('test-two', 'test/image:tag')
@@ -909,6 +930,13 @@ describe('Hub Client Integration Test', function () {
         describe('when getting all upgrade candidates (error)', function () {
           it('should reject with an error', function () {
             return client.upgradeWorkloadsOnAll('test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
+        })
+
+        describe('when getting upgrade candidates by channel (error)', function () {
+          it('should reject with an error', function () {
+            return client.upgradeWorkloadsOnChannel('foo', 'test/image:tag')
               .should.be.rejectedWith(`no response from server`)
           })
         })
