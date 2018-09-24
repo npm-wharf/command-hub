@@ -37,7 +37,7 @@ describe('Hub Client Integration Test', function () {
         },
         redisUrl: 'redis://localhost:6379/0',
         hubUrl: HUB_URL,
-        timeout: 200,
+        timeout: 500,
         port: 8012,
         transports: [ 'deftly-express' ],
         resources: [ './src/resources/*.js' ],
