@@ -2,7 +2,7 @@ const ui = require('cliui')({
   width: 80
 })
 
-function builder () {
+function build () {
   return {
     channel: {
       alias: 'c',
@@ -56,7 +56,7 @@ module.exports = function (comhub, log) {
   return {
     command: 'list clusters',
     desc: 'list clusters in the storage backend',
-    builder,
+    builder: build(),
     handler: handle.bind(null, comhub, log)
   }
 }

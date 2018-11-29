@@ -23,7 +23,7 @@ function build () {
 }
 
 function handle (comhub, log, argv) {
-  comhub.getCandidates(argv.name, argv.image)
+  comhub.getCandidates(argv.name, argv.image, argv.filter.split())
     .then(
       results => {
         if (results.upgrade.length) {
