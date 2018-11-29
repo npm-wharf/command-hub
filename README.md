@@ -291,7 +291,7 @@ On failure, the properties returned change to:
  * `url` the url for the cluster's hikaru endpoint
  * `failed` -> `true`
  * `message` a simple explanation that the upgrade failed
- * `error` the stack track containing details for the failure
+ * `error` the stack trace containing details for the failure
 
 `POST /api/channel/{channel}/image/{image}?filter=`
 
@@ -381,7 +381,7 @@ On failure, the properties returned change to:
  * `url` the url for the cluster's hikaru endpoint
  * `failed` -> `true`
  * `message` a simple explanation that the upgrade failed
- * `error` the stack track containing details for the failure
+ * `error` the stack trace containing details for the failure
 
 `POST /api/cluster/image/{image}?filter=`
 
