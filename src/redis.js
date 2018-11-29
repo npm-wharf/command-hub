@@ -3,18 +3,21 @@ const LIST_KEY = 'cluster-list'
 const CHANNELS_KEY = 'cluster-channels'
 
 async function addCluster (client, cluster, url, channel) {
-  await client.hset(LIST_KEY, cluster, url)
+  let txn = client.multi().hset(LIST_KEY, cluster, url)
   if (channel) {
-    await client.hset(CHANNELS_KEY, cluster, channel)
-    // this enables easy lookup by channel name
-    await client.sadd(`${CHANNELS_KEY}/${channel}`, cluster)
+    txn = txn.hset(CHANNELS_KEY, cluster, channel)
+      // this enables easy lookup by channel name
+      .sadd(`${CHANNELS_KEY}/${channel}`, cluster)
   }
+  await txn.exec()
 }
 
 async function clearList (client) {
-  await client.del(LIST_KEY)
   const keys = await client.keys(`${CHANNELS_KEY}*`)
-  await Promise.all(keys.map(key => client.del(key)))
+  let txn = client.multi().del(LIST_KEY)
+  keys.forEach(key => { txn = txn.del(key) })
+
+  await txn.exec()
 }
 
 function close (client) {
@@ -34,12 +37,13 @@ async function getCluster (client, cluster) {
 }
 
 async function removeCluster (client, cluster) {
-  await client.hdel(LIST_KEY, cluster)
   const channel = await client.hget(CHANNELS_KEY, cluster)
+  let txn = client.multi().hdel(LIST_KEY, cluster)
   if (channel) {
-    await client.hdel(CHANNELS_KEY, cluster)
-    await client.srem(`${CHANNELS_KEY}/${channel}`, cluster)
+    txn = txn.hdel(CHANNELS_KEY, cluster)
+      .srem(`${CHANNELS_KEY}/${channel}`, cluster)
   }
+  await txn.exec()
 }
 
 async function listClusters (client) {
