@@ -2,14 +2,14 @@ const axios = require('axios')
 const keys = require('./keys')()
 const log = require('bole')('hub-client')
 
-function addCluster (instance, name, url) {
+function addCluster (instance, name, url, channel) {
   return instance.post(
     '/api/cluster',
     {
       headers: {
         'content-type': 'application/json'
       },
-      data: { name, url }
+      data: { name, url, channel }
     }
   ).then(
     response => response.status === 201,
@@ -30,7 +30,7 @@ function findWorkloads (instance, name, image) {
   let url = `/api/cluster/${name}/workload/${image}`
   return instance.get(url)
     .then(
-      response => response.data,
+      response => { log.info(response.data); return response.data },
       err => {
         let message = ''
         if (err.response) {
@@ -55,6 +55,24 @@ function findWorkloadsOnAll (instance, image) {
           message = `failed to find workloads on all clusters: ${err.response.status} - ${err.response.data}`
         } else {
           message = `no response from server '${axios.defaults.baseURL}' - cannot find workloads for all clusters due to error: ${err.stack}`
+        }
+        log.error(message)
+        throw new Error(message)
+      }
+    )
+}
+
+function findWorkloadsOnChannel (instance, channel, image) {
+  let url = `/api/channel/${channel}/workload/${image}`
+  return instance.get(url)
+    .then(
+      response => response.data,
+      err => {
+        let message = ''
+        if (err.response) {
+          message = `failed to find workloads on channel ${channel}: ${err.response.status} - ${err.response.data}`
+        } else {
+          message = `no response from server '${axios.defaults.baseURL}' - cannot find workloads for channel ${channel} due to error: ${err.stack}`
         }
         log.error(message)
         throw new Error(message)
@@ -104,21 +122,53 @@ function getCandidatesOnAll (instance, image, filter) {
     )
 }
 
-function getClusters (instance) {
-  return instance.get('/api/cluster')
+function getCandidatesOnChannel (instance, channel, image, filter) {
+  let url = `/api/channel/${channel}/image/${image}`
+  url = filter && filter.length > 0
+    ? `${url}?filter=${filter.join(',')}`
+    : url
+  return instance.get(url)
     .then(
-      response => response.data.clusters,
+      response => response.data,
       err => {
         let message = ''
         if (err.response) {
-          message = `failed to get cluster list: ${err.response.status} - ${err.response.data}`
+          message = `failed to get upgrade candidates on channel ${channel}: ${err.response.status} - ${err.response.data}`
         } else {
-          message = `no response from server '${axios.defaults.baseURL}' - cannot get cluster list due to error: ${err.stack}`
+          message = `no response from server '${axios.defaults.baseURL}' - cannot get upgrade candidates due to error: ${err.stack}`
         }
         log.error(message)
         throw new Error(message)
       }
     )
+}
+
+async function getClusters (instance) {
+  const response = await instance.get('/api/cluster').catch(err => {
+    let message = ''
+    if (err.response) {
+      message = `failed to get cluster list: ${err.response.status} - ${err.response.data}`
+    } else {
+      message = `no response from server '${axios.defaults.baseURL}' - cannot get cluster list due to error: ${err.stack}`
+    }
+    log.error(message)
+    throw new Error(message)
+  })
+  return response.data.clusters
+}
+
+async function getClustersByChannel (instance, channel) {
+  const response = await instance.get(`/api/channel/${channel}`).catch(err => {
+    let message = ''
+    if (err.response) {
+      message = `failed to get cluster list: ${err.response.status} - ${err.response.data}`
+    } else {
+      message = `no response from server '${axios.defaults.baseURL}' - cannot get cluster list due to error: ${err.stack}`
+    }
+    log.error(message)
+    throw new Error(message)
+  })
+  return response.data.clusters
 }
 
 function getInstance (config) {
@@ -199,17 +249,42 @@ function upgradeWorkloadsOnAll (instance, image, filter) {
     )
 }
 
+function upgradeWorkloadsOnChannel (instance, channel, image, filter) {
+  let url = `/api/channel/${channel}/image/${image}`
+  url = filter && filter.length > 0
+    ? `${url}?filter=${filter.join(',')}`
+    : url
+  return instance.post(url)
+    .then(
+      response => response.data,
+      err => {
+        let message = ''
+        if (err.response) {
+          message = `failed to upgrade workloads on channel ${channel}: ${err.response.status} - ${err.response.data}`
+        } else {
+          message = `no response from server '${axios.defaults.baseURL}' - cannot update workloads due to error: ${err.stack}`
+        }
+        log.error(message)
+        throw new Error(message)
+      }
+    )
+}
+
 module.exports = function (config) {
   const instance = getInstance(config)
   return {
     addCluster: addCluster.bind(null, instance),
     findWorkloads: findWorkloads.bind(null, instance),
     findWorkloadsOnAll: findWorkloadsOnAll.bind(null, instance),
+    findWorkloadsOnChannel: findWorkloadsOnChannel.bind(null, instance),
     getCandidates: getCandidates.bind(null, instance),
     getCandidatesOnAll: getCandidatesOnAll.bind(null, instance),
+    getCandidatesOnChannel: getCandidatesOnChannel.bind(null, instance),
     getClusters: getClusters.bind(null, instance),
+    getClustersByChannel: getClustersByChannel.bind(null, instance),
     removeCluster: removeCluster.bind(null, instance),
     upgradeWorkloads: upgradeWorkloads.bind(null, instance),
-    upgradeWorkloadsOnAll: upgradeWorkloadsOnAll.bind(null, instance)
+    upgradeWorkloadsOnAll: upgradeWorkloadsOnAll.bind(null, instance),
+    upgradeWorkloadsOnChannel: upgradeWorkloadsOnChannel.bind(null, instance)
   }
 }

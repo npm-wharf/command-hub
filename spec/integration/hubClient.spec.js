@@ -4,14 +4,26 @@ const HubClient = require('../../src/hubClient')
 const server = require('./test-server')
 const HIKARU_URL_1 = 'https://hikaru.test-one.io'
 const HIKARU_URL_2 = 'https://hikaru.test-two.io'
+const HIKARU_INT_1 = 'https://hikaru.int-one.io'
+const HIKARU_INT_2 = 'https://hikaru.int-two.io'
 const HUB_URL = 'http://localhost:8012'
 
+const sorter = (a, b) => {
+  if (a.cluster > b.cluster) {
+    return -1
+  } else if (a.cluster < b.cluster) {
+    return 1
+  }
+  return 0
+}
+
 describe('Hub Client Integration Test', function () {
+  this.timeout(500)
   describe('with certs and specified token', function () {
     let deftly
     let config
     let client
-    before(function () {
+    before(async () => {
       config = {
         tokens: {
           api: 'test-token-1'
@@ -25,7 +37,7 @@ describe('Hub Client Integration Test', function () {
         },
         redisUrl: 'redis://localhost:6379/0',
         hubUrl: HUB_URL,
-        timeout: 200,
+        timeout: 500,
         port: 8012,
         transports: [ 'deftly-express' ],
         resources: [ './src/resources/*.js' ],
@@ -35,11 +47,8 @@ describe('Hub Client Integration Test', function () {
           level: 'info'
         }
       }
-      return server(config)
-        .then(instance => {
-          deftly = instance
-          client = new HubClient(config)
-        })
+      deftly = await server(config)
+      client = new HubClient(config)
     })
 
     it('should add cluster successfully', function () {
@@ -55,14 +64,7 @@ describe('Hub Client Integration Test', function () {
       return client.getClusters()
         .then(
           clusters => {
-            clusters.sort((a, b) => {
-              if (a.cluster > b.cluster) {
-                return -1
-              } else if (a.cluster < b.cluster) {
-                return 1
-              }
-              return 0
-            })
+            clusters.sort(sorter)
             clusters.should.eql([
               { cluster: 'test-two', url: 'https://hikaru.test-two.io' },
               { cluster: 'test-one', url: 'https://hikaru.test-one.io' }
@@ -605,28 +607,24 @@ describe('Hub Client Integration Test', function () {
             ])
         })
 
-        it('should return the list', function () {
-          return client.findWorkloads('test-two', 'test/image:tag')
-            .then(
-              result => {
-                return result.should.eql([
-                  {
-                    namespace: 'namespace',
-                    type: 'deployment',
-                    service: 'test-1',
-                    image: 'test/image:tag',
-                    container: 'test-1'
-                  },
-                  {
-                    namespace: 'namespace',
-                    type: 'statefulSet',
-                    service: 'test-2',
-                    image: 'test/image:tag',
-                    container: 'test-2'
-                  }
-                ])
-              }
-            )
+        it('should return the list', async () => {
+          const result = await client.findWorkloads('test-two', 'test/image:tag')
+          result.should.eql([
+            {
+              namespace: 'namespace',
+              type: 'deployment',
+              service: 'test-1',
+              image: 'test/image:tag',
+              container: 'test-1'
+            },
+            {
+              namespace: 'namespace',
+              type: 'statefulSet',
+              service: 'test-2',
+              image: 'test/image:tag',
+              container: 'test-2'
+            }
+          ])
         })
       })
 
@@ -843,88 +841,452 @@ describe('Hub Client Integration Test', function () {
       })
     })
 
-    describe('with failing hub server calls', function () {
-      describe('when adding cluster (error)', function () {
-        it('should fail to add cluster (failure)', function () {
-          return client.addCluster('test-three', 'https://hikaru.test-two.io')
-            .should.eventually.be.rejectedWith('no response from server')
+    describe('errors', () => {
+      describe('with failing hub server calls', function () {
+        describe('when adding cluster (error)', function () {
+          it('should fail to add cluster (failure)', function () {
+            return client.addCluster('test-three', 'https://hikaru.test-two.io')
+              .should.eventually.be.rejectedWith('no response from server')
+          })
         })
-      })
 
-      describe('when removing cluster (error)', function () {
-        it('should fail to add cluster (failure)', function () {
-          return client.removeCluster('test-three')
-            .should.eventually.be.rejectedWith('no response from server')
+        describe('when removing cluster (error)', function () {
+          it('should fail to add cluster (failure)', function () {
+            return client.removeCluster('test-three')
+              .should.eventually.be.rejectedWith('no response from server')
+          })
         })
-      })
 
-      describe('when listing clusters (error)', function () {
-        it('should fail to add cluster (failure)', function () {
-          return client.getClusters()
-            .should.eventually.be.rejectedWith('no response from server')
+        describe('when listing clusters (error)', function () {
+          it('should fail to add cluster (failure)', function () {
+            return client.getClusters()
+              .should.eventually.be.rejectedWith('no response from server')
+          })
         })
-      })
 
-      describe('when getting workloads (error)', function () {
-        it('should reject with an error', function () {
-          return client.findWorkloads('test-two', 'test/image:tag')
-            .should.be.rejectedWith(`no response from server`)
+        describe('when listing channels (error)', function () {
+          it('should fail to add cluster (failure)', function () {
+            return client.getClustersByChannel('foo')
+              .should.eventually.be.rejectedWith('no response from server')
+          })
         })
-      })
 
-      describe('when getting workloads (error)', function () {
-        it('should reject with an error', function () {
-          return client.findWorkloads('test-two', 'test/image:tag')
-            .should.be.rejectedWith(`no response from server`)
+        describe('when getting workloads (error)', function () {
+          it('should reject with an error', function () {
+            return client.findWorkloads('test-two', 'test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
         })
-      })
 
-      describe('when getting all workloads (error)', function () {
-        it('should reject with an error', function () {
-          return client.findWorkloadsOnAll('test/image:tag')
-            .should.be.rejectedWith(`no response from server`)
+        describe('when getting workloads (error)', function () {
+          it('should reject with an error', function () {
+            return client.findWorkloads('test-two', 'test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
         })
-      })
 
-      describe('when getting upgrade candidates (error)', function () {
-        it('should reject with an error', function () {
-          return client.getCandidates('test-two', 'test/image:tag')
-            .should.be.rejectedWith(`no response from server`)
+        describe('when getting all workloads (error)', function () {
+          it('should reject with an error', function () {
+            return client.findWorkloadsOnAll('test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
         })
-      })
 
-      describe('when getting all upgrade candidates (error)', function () {
-        it('should reject with an error', function () {
-          return client.getCandidatesOnAll('test/image:tag')
-            .should.be.rejectedWith(`no response from server`)
+        describe('when getting workloads on channel (error)', function () {
+          it('should reject with an error', function () {
+            return client.findWorkloadsOnChannel('foo', 'test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
         })
-      })
 
-      describe('when getting upgrade candidates (error)', function () {
-        it('should reject with an error', function () {
-          return client.upgradeWorkloads('test-two', 'test/image:tag')
-            .should.be.rejectedWith(`no response from server`)
+        describe('when getting upgrade candidates (error)', function () {
+          it('should reject with an error', function () {
+            return client.getCandidates('test-two', 'test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
         })
-      })
 
-      describe('when getting all upgrade candidates (error)', function () {
-        it('should reject with an error', function () {
-          return client.upgradeWorkloadsOnAll('test/image:tag')
-            .should.be.rejectedWith(`no response from server`)
+        describe('when getting all upgrade candidates (error)', function () {
+          it('should reject with an error', function () {
+            return client.getCandidatesOnAll('test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
+        })
+
+        describe('when getting upgrade candidates on channel (error)', function () {
+          it('should reject with an error', function () {
+            return client.getCandidatesOnChannel('foo', 'test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
+        })
+
+        describe('when getting upgrade candidates (error)', function () {
+          it('should reject with an error', function () {
+            return client.upgradeWorkloads('test-two', 'test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
+        })
+
+        describe('when getting all upgrade candidates (error)', function () {
+          it('should reject with an error', function () {
+            return client.upgradeWorkloadsOnAll('test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
+        })
+
+        describe('when getting upgrade candidates by channel (error)', function () {
+          it('should reject with an error', function () {
+            return client.upgradeWorkloadsOnChannel('foo', 'test/image:tag')
+              .should.be.rejectedWith(`no response from server`)
+          })
         })
       })
     })
 
-    after(function () {
+    describe('with channels', () => {
+      before(async () => {
+        nock.cleanAll()
+        await deftly.clusters.clear()
+      })
+      it('should add clusters successfully', function () {
+        return Promise.all([
+          client.addCluster('test-one', 'https://hikaru.test-one.io'),
+          client.addCluster('prod-one', 'https://hikaru.prod-one.io', 'production'),
+          client.addCluster('int-one', 'https://hikaru.int-one.io', 'integration'),
+          client.addCluster('int-two', 'https://hikaru.int-two.io', 'integration')
+        ]).then(
+          results => results.should.eql([true, true, true, true])
+        )
+      })
+
+      it('should get clusters successfully', function () {
+        return client.getClusters()
+          .then(
+            clusters => {
+              clusters.sort(sorter)
+              clusters.should.eql([
+                { cluster: 'test-one', url: 'https://hikaru.test-one.io' },
+                { cluster: 'prod-one', url: 'https://hikaru.prod-one.io', channel: 'production' },
+                { cluster: 'int-two', url: 'https://hikaru.int-two.io', channel: 'integration' },
+                { cluster: 'int-one', url: 'https://hikaru.int-one.io', channel: 'integration' }
+              ])
+            }
+          )
+      })
+
+      it('should get clusters by channel', function () {
+        return client.getClustersByChannel('integration')
+          .then(
+            clusters => {
+              clusters.sort(sorter)
+              clusters.should.eql([
+                { cluster: 'int-two', url: 'https://hikaru.int-two.io', channel: 'integration' },
+                { cluster: 'int-one', url: 'https://hikaru.int-one.io', channel: 'integration' }
+              ])
+            }
+          )
+      })
+
+      describe('when getting all workloads (successfully)', function () {
+        before(function () {
+          nock(HIKARU_INT_1)
+            .get('/api/workload/test/image:tag')
+            .reply(200, [
+              {
+                namespace: 'namespace',
+                type: 'deployment',
+                service: 'test-1',
+                image: 'test/image:tag',
+                container: 'test-1'
+              },
+              {
+                namespace: 'namespace',
+                type: 'statefulSet',
+                service: 'test-2',
+                image: 'test/image:tag',
+                container: 'test-2'
+              }
+            ])
+          nock(HIKARU_INT_2)
+            .get('/api/workload/test/image:tag')
+            .reply(200, [
+              {
+                namespace: 'namespace',
+                type: 'deployment',
+                service: 'test-3',
+                image: 'test/image:tag',
+                container: 'test-3'
+              },
+              {
+                namespace: 'namespace',
+                type: 'statefulSet',
+                service: 'test-4',
+                image: 'test/image:tag',
+                container: 'test-4'
+              }
+            ])
+        })
+
+        it('should return the list', function () {
+          return client.findWorkloadsOnChannel('integration', 'test/image:tag')
+            .then(
+              result => {
+                return result.should.eql({
+                  'int-one': [
+                    {
+                      namespace: 'namespace',
+                      type: 'deployment',
+                      service: 'test-1',
+                      image: 'test/image:tag',
+                      container: 'test-1'
+                    },
+                    {
+                      namespace: 'namespace',
+                      type: 'statefulSet',
+                      service: 'test-2',
+                      image: 'test/image:tag',
+                      container: 'test-2'
+                    }
+                  ],
+                  'int-two': [
+                    {
+                      namespace: 'namespace',
+                      type: 'deployment',
+                      service: 'test-3',
+                      image: 'test/image:tag',
+                      container: 'test-3'
+                    },
+                    {
+                      namespace: 'namespace',
+                      type: 'statefulSet',
+                      service: 'test-4',
+                      image: 'test/image:tag',
+                      container: 'test-4'
+                    }
+                  ]
+                })
+              }
+            )
+        })
+      })
+
+      describe('when getting candidates on a channel (successfully)', function () {
+        before(function () {
+          nock(HIKARU_INT_1)
+            .get('/api/image/test/image:tag?filter=owner,version')
+            .reply(200, {
+              upgrade: [
+                {
+                  namespace: 'namespace',
+                  type: 'deployment',
+                  service: 'test-1',
+                  image: 'test/image:tag',
+                  container: 'test-1'
+                }
+              ],
+              obsolete: [
+                {
+                  namespace: 'namespace',
+                  type: 'statefulSet',
+                  service: 'test-2',
+                  image: 'test/image:tag',
+                  container: 'test-2'
+                }
+              ],
+              equal: [],
+              error: []
+            })
+          nock(HIKARU_INT_2)
+            .get('/api/image/test/image:tag?filter=owner,version')
+            .reply(200, {
+              upgrade: [
+                {
+                  namespace: 'namespace',
+                  type: 'deployment',
+                  service: 'test-3',
+                  image: 'test/image:tag',
+                  container: 'test-3'
+                }
+              ],
+              obsolete: [
+                {
+                  namespace: 'namespace',
+                  type: 'statefulSet',
+                  service: 'test-4',
+                  image: 'test/image:tag',
+                  container: 'test-4'
+                }
+              ],
+              equal: [],
+              error: []
+            })
+        })
+
+        it('should return the set', function () {
+          return client.getCandidatesOnChannel('integration', 'test/image:tag', ['owner', 'version'])
+            .then(
+              result => {
+                return result.should.partiallyEql({
+                  'int-one': {
+                    url: 'https://hikaru.int-one.io',
+                    upgrade: [
+                      {
+                        namespace: 'namespace',
+                        type: 'deployment',
+                        service: 'test-1',
+                        image: 'test/image:tag',
+                        container: 'test-1'
+                      }
+                    ],
+                    obsolete: [
+                      {
+                        namespace: 'namespace',
+                        type: 'statefulSet',
+                        service: 'test-2',
+                        image: 'test/image:tag',
+                        container: 'test-2'
+                      }
+                    ]
+                  },
+                  'int-two': {
+                    url: 'https://hikaru.int-two.io',
+                    upgrade: [
+                      {
+                        namespace: 'namespace',
+                        type: 'deployment',
+                        service: 'test-3',
+                        image: 'test/image:tag',
+                        container: 'test-3'
+                      }
+                    ],
+                    obsolete: [
+                      {
+                        namespace: 'namespace',
+                        type: 'statefulSet',
+                        service: 'test-4',
+                        image: 'test/image:tag',
+                        container: 'test-4'
+                      }
+                    ]
+                  }
+                })
+              }
+            )
+        })
+      })
+
+      describe('when upgrading all workloads (successfully)', function () {
+        before(function () {
+          nock(HIKARU_INT_1)
+            .post('/api/image/test/image:tag?filter=owner,version')
+            .reply(200, {
+              upgrade: [
+                {
+                  namespace: 'namespace',
+                  type: 'deployment',
+                  service: 'test-1',
+                  image: 'test/image:tag',
+                  container: 'test-1'
+                }
+              ],
+              obsolete: [
+                {
+                  namespace: 'namespace',
+                  type: 'statefulSet',
+                  service: 'test-2',
+                  image: 'test/image:tag',
+                  container: 'test-2'
+                }
+              ],
+              equal: [],
+              error: []
+            })
+          nock(HIKARU_INT_2)
+            .post('/api/image/test/image:tag?filter=owner,version')
+            .reply(200, {
+              upgrade: [
+                {
+                  namespace: 'namespace',
+                  type: 'deployment',
+                  service: 'test-3',
+                  image: 'test/image:tag',
+                  container: 'test-3'
+                }
+              ],
+              obsolete: [
+                {
+                  namespace: 'namespace',
+                  type: 'statefulSet',
+                  service: 'test-4',
+                  image: 'test/image:tag',
+                  container: 'test-4'
+                }
+              ],
+              equal: [],
+              error: []
+            })
+        })
+
+        it('should return the set', function () {
+          return client.upgradeWorkloadsOnChannel('integration', 'test/image:tag', ['owner', 'version'])
+            .then(
+              result => {
+                return result.should.partiallyEql({
+                  'int-one': {
+                    url: HIKARU_INT_1,
+                    upgrade: [
+                      {
+                        namespace: 'namespace',
+                        type: 'deployment',
+                        service: 'test-1',
+                        image: 'test/image:tag',
+                        container: 'test-1'
+                      }
+                    ],
+                    obsolete: [
+                      {
+                        namespace: 'namespace',
+                        type: 'statefulSet',
+                        service: 'test-2',
+                        image: 'test/image:tag',
+                        container: 'test-2'
+                      }
+                    ]
+                  },
+                  'int-two': {
+                    url: HIKARU_INT_2,
+                    upgrade: [
+                      {
+                        namespace: 'namespace',
+                        type: 'deployment',
+                        service: 'test-3',
+                        image: 'test/image:tag',
+                        container: 'test-3'
+                      }
+                    ],
+                    obsolete: [
+                      {
+                        namespace: 'namespace',
+                        type: 'statefulSet',
+                        service: 'test-4',
+                        image: 'test/image:tag',
+                        container: 'test-4'
+                      }
+                    ]
+                  }
+                })
+              }
+            )
+        })
+      })
+    })
+
+    after(async () => {
       nock.cleanAll()
       nock.restore()
-      return deftly.service.stop()
-        .then(
-          () => {
-            return deftly.clusters.clear()
-              .then(() => deftly.clusters.close())
-          }
-        )
+      await deftly.service.stop()
+      await deftly.clusters.clear()
+      await deftly.clusters.close()
     })
   })
 })

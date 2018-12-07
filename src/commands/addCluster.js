@@ -9,12 +9,16 @@ function build () {
       alias: 'u',
       describe: 'cluster url',
       demandOption: true
+    },
+    channel: {
+      alias: 'c',
+      describe: 'cluster release channel'
     }
   }
 }
 
 function handle (comhub, log, argv) {
-  comhub.addCluster(argv.name, argv.url)
+  comhub.addCluster(argv.name, argv.url, argv.channel)
     .then(
       () => log.info(`added cluster '${argv.name}' with url '${argv.url}'`),
       err => log.error(`failed to add cluster '${argv.name}' with: ${err.stack}`)
